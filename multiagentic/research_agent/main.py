@@ -35,24 +35,24 @@ tools = [
     {
         "type": "web_fetch_20260209", 
         "name": "web_fetch",
-        "max_uses" : 5 
+        "max_uses" : 2 
     },
     {
         "type": "web_search_20260209",
         "name": "web_search",
-        "max_uses" : 5 
+        "max_uses" : 2 
     }
 ]
 
 
-model = ChatAnthropic(model="claude-opus-4-6").bind_tools(tools)
+model = ChatAnthropic(model="claude-sonnet-4-6").bind_tools(tools)
 
 
-class DeepDiveDecision(BaseModel):
-    should_deep_dive: bool
-    reasoning: str
+# class DeepDiveDecision(BaseModel):
+#     should_deep_dive: bool
+#     reasoning: str
 
-decision_model = ChatAnthropic(model="claude-opus-4-6").with_structured_output(DeepDiveDecision)
+cheap_model = ChatAnthropic(model="claude-haiku-4-5")#.bind_tools(tools)#.with_structured_output(DeepDiveDecision)
 
 
 def merge_dicts(current: dict, update: dict) -> dict:
@@ -128,7 +128,7 @@ def synthesize(state: ResearchState) -> ResearchState:
     logger.info("Synthesizing")
 
     all_responses = ", ".join([extract_text(content) for content in state["processed_content"].values()])
-    response = model.invoke([
+    response = cheap_model.invoke([
         SystemMessage(content=state["audience_focus"]),
         HumanMessage(content=f"Synthesize the following content in a newsletter style. Content is separated by commas: {all_responses}")
     ])
@@ -143,22 +143,21 @@ def synthesize(state: ResearchState) -> ResearchState:
 def decide_to_deep_dive(state: ResearchState):
     current_content = state["processed_content"].get(state["current_url"], "")
 
-    decision: DeepDiveDecision = decision_model.invoke([
-        SystemMessage(content=state["audience_focus"]),
-        HumanMessage(content=f"""You just summarized this content: {current_content}
+    # decision: DeepDiveDecision = decision_model.invoke([
+    #     SystemMessage(content=state["audience_focus"]),
+    #     HumanMessage(content=f"""You just summarized this content: {current_content}
 
-    Should we perform deeper research on this topic, or move on to the next URL?
-    Consider: Is the content thin? Are there gaps? Would more detail benefit the audience?""")
-    ])
-    logger.info("deep dive decision", reasoning=decision.reasoning)
-    if decision.should_deep_dive:
+    # Should we perform deeper research on this topic, or move on to the next URL?
+    # Consider: Is the content thin? Are there gaps? Would more detail benefit the audience?""")
+    # ])
+    # logger.info("deep dive decision", reasoning=decision.reasoning)
+
+    if len(current_content.split()) < 200:
         return "research_outer"
     return "controller"
 
 
 def decide_to_finish(state: ResearchState):
-
-
     if len(state.get("urls")) == 0:
           return "synthesize"
     else:
