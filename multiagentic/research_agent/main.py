@@ -84,8 +84,13 @@ class ResearchState(TypedDict):
 
 def controller(state: ResearchState) -> ResearchState:
     logger.info("Starting in Controller")
-    curr_url = state['urls'][-1]
-    remaining = state['urls'][:-1]
+    if(len(state['urls']) == 0):
+        return {
+            "finished": True
+        }
+
+    curr_url = state['urls'].pop()
+    remaining = state['urls']
 
     return {
         "current_url": curr_url,
@@ -158,7 +163,7 @@ def decide_to_deep_dive(state: ResearchState):
 
 
 def decide_to_finish(state: ResearchState):
-    if len(state.get("urls")) == 0:
+    if state.get("finished"):
           return "synthesize"
     else:
         return "research_url"
