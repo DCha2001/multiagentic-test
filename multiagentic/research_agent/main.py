@@ -48,11 +48,11 @@ tools = [
 model = ChatAnthropic(model="claude-sonnet-4-6").bind_tools(tools)
 
 
-# class DeepDiveDecision(BaseModel):
-#     should_deep_dive: bool
-#     reasoning: str
+class DeepDiveDecision(BaseModel):
+    should_deep_dive: bool
+    reasoning: str
 
-cheap_model = ChatAnthropic(model="claude-haiku-4-5")#.bind_tools(tools)#.with_structured_output(DeepDiveDecision)
+cheap_model = ChatAnthropic(model="claude-haiku-4-5").with_structured_output(DeepDiveDecision)#.bind_tools(tools)#.with_structured_output(DeepDiveDecision)
 
 
 def merge_dicts(current: dict, update: dict) -> dict:
@@ -89,8 +89,8 @@ def controller(state: ResearchState) -> ResearchState:
             "finished": True
         }
 
-    curr_url = state['urls'].pop()
-    remaining = state['urls']
+    curr_url = state['urls'][-1]
+    remaining = state['urls'][:-1]
 
     return {
         "current_url": curr_url,
@@ -148,16 +148,16 @@ def synthesize(state: ResearchState) -> ResearchState:
 def decide_to_deep_dive(state: ResearchState):
     current_content = state["processed_content"].get(state["current_url"], "")
 
-    # decision: DeepDiveDecision = decision_model.invoke([
-    #     SystemMessage(content=state["audience_focus"]),
-    #     HumanMessage(content=f"""You just summarized this content: {current_content}
+    decision: DeepDiveDecision = cheap_model.invoke([
+        SystemMessage(content=state["audience_focus"]),
+        HumanMessage(content=f"""You just summarized this content: {current_content}
 
-    # Should we perform deeper research on this topic, or move on to the next URL?
-    # Consider: Is the content thin? Are there gaps? Would more detail benefit the audience?""")
-    # ])
-    # logger.info("deep dive decision", reasoning=decision.reasoning)
+    Should we perform deeper research on this topic, or move on to the next URL?
+    Consider: Is the content thin? Are there gaps? Would more detail benefit the audience?""")
+    ])
+    logger.info("deep dive decision", reasoning=decision.reasoning)
 
-    if len(current_content.split()) < 200:
+    if decision.should_deep_dive:
         return "research_outer"
     return "controller"
 
@@ -182,6 +182,8 @@ if __name__ == "__main__":
     graph.add_conditional_edges('controller', decide_to_finish, ["research_url", "synthesize"])
 
     graph.add_conditional_edges('research_url', decide_to_deep_dive, ["research_outer", "controller"])
+
+    graph.add_edge('research_outer', 'controller')
 
 
     graph.add_edge('synthesize', END)
