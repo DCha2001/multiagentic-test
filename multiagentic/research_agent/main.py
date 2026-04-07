@@ -28,7 +28,7 @@ structlog.configure(
 
 logger = structlog.get_logger(__name__)
 
-urls = ["www.anthropic.com/engineering", "openai.com/news/"]
+urls = ["https://increment.com/", "https://danluu.com/"]
 
 
 tools = [
@@ -203,7 +203,7 @@ if __name__ == "__main__":
         "current_url": "",
         "processed_content": {},
         "llm_calls": 0,
-        "audience_focus": "You are a tech blogger making sure to make content enjoyable and informative.",
+        "audience_focus": "You are a research assistant gathering information and organzing it for main research purposes.",
         "messages": [],
     })
 
