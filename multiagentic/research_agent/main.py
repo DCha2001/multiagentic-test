@@ -53,6 +53,7 @@ class DeepDiveDecision(BaseModel):
     reasoning: str
 
 cheap_model = ChatAnthropic(model="claude-haiku-4-5").with_structured_output(DeepDiveDecision)#.bind_tools(tools)#.with_structured_output(DeepDiveDecision)
+synthesize_model = ChatAnthropic(model="claude-haiku-4-5")
 
 
 def merge_dicts(current: dict, update: dict) -> dict:
@@ -86,7 +87,8 @@ def controller(state: ResearchState) -> ResearchState:
     logger.info("Starting in Controller")
     if(len(state['urls']) == 0):
         return {
-            "finished": True
+            "finished": True,
+            "urls": []
         }
 
     curr_url = state['urls'][-1]
@@ -133,7 +135,7 @@ def synthesize(state: ResearchState) -> ResearchState:
     logger.info("Synthesizing")
 
     all_responses = ", ".join([extract_text(content) for content in state["processed_content"].values()])
-    response = cheap_model.invoke([
+    response = synthesize_model.invoke([
         SystemMessage(content=state["audience_focus"]),
         HumanMessage(content=f"Synthesize the following content in a newsletter style. Content is separated by commas: {all_responses}")
     ])
@@ -207,6 +209,7 @@ if __name__ == "__main__":
         "llm_calls": 0,
         "audience_focus": "You are a research assistant gathering information and organzing it for main research purposes.",
         "messages": [],
+        "finished": False
     })
 
     print(fn)

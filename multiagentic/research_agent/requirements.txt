@@ -1,0 +1,7 @@
+langchain-anthropic
+langchain-core
+langgraph
+pydantic
+python-dotenv
+structlog
+typing-extensions
